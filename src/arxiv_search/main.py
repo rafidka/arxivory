@@ -211,43 +211,127 @@ def harvest_papers(
 
 
 def semantic_search(
-    papers: List[Dict[str, Any]], query: str, top_k: int = 10
+    papers: List[Dict[str, Any]],
+    query: str,
+    top_k: int = 10,
+    retrieval_k: int = 100,
+    strategy: str = "embed-rerank",
 ) -> List[tuple[Dict[str, Any], float]]:
-    """Perform semantic search using Cohere embeddings and reranking."""
+    """
+    Perform semantic search with configurable strategy.
+
+    Strategies:
+    - "embed-rerank" (default): Two-stage approach for speed and cost-efficiency
+      - Stage 1: Use Cohere Embed v4 to retrieve top candidates via cosine similarity
+      - Stage 2: Use Cohere Rerank 3.5 on candidates for final ranking
+    - "rerank-only": Single-stage reranking for maximum accuracy (slower, more expensive)
+      - Uses Cohere Rerank 3.5 on all documents directly
+    """
     if not papers:
         return []
 
     client = get_cohere_client()
 
-    # Prepare documents for reranking (title + abstract)
+    # Prepare documents for embedding (title + abstract)
     documents = []
     for paper in papers:
         doc_text = f"{paper.get('title', '')} {paper.get('abstract', '')}"
         documents.append(doc_text)
+
+    # If strategy is rerank-only or we have few documents, use rerank-only approach
+    if strategy == "rerank-only" or len(papers) <= retrieval_k:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            strategy_msg = (
+                "user-requested rerank-only strategy"
+                if strategy == "rerank-only"
+                else "skipping embedding stage for small dataset"
+            )
+            task = progress.add_task(
+                f"Reranking all {len(papers)} papers ({strategy_msg})...", total=None
+            )
+
+            response = client.rerank(
+                query=query,
+                documents=documents,
+                model="rerank-v3.5",
+                top_n=min(top_k, len(documents)),
+            )
+
+            progress.update(task, description="Search completed")
+
+        # Return papers with their relevance scores
+        results = []
+        for result in response.results:
+            paper = papers[result.index]
+            results.append((paper, result.relevance_score))
+
+        return results
 
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task(
-            "Performing semantic search with Cohere...", total=None
+        # Stage 1: Embedding-based retrieval
+        embed_task = progress.add_task(
+            f"Stage 1: Embedding {len(papers)} papers with Cohere Embed v4...",
+            total=None,
         )
 
-        # Use Cohere Rerank 3.5 to find most relevant papers
-        response = client.rerank(
+        # Get embeddings for query and all documents
+        query_embed_response = client.embed(
+            texts=[query], model="embed-v4", input_type="search_query"
+        )
+
+        doc_embed_response = client.embed(
+            texts=documents, model="embed-v4", input_type="search_document"
+        )
+
+        query_embedding = np.array(query_embed_response.embeddings[0])
+        doc_embeddings = np.array(doc_embed_response.embeddings)
+
+        progress.update(embed_task, description="Computing cosine similarities...")
+
+        # Compute cosine similarities
+        similarities = np.dot(doc_embeddings, query_embedding) / (
+            np.linalg.norm(doc_embeddings, axis=1) * np.linalg.norm(query_embedding)
+        )
+
+        # Get top candidates for reranking
+        candidates_count = min(retrieval_k, len(papers))
+        top_indices = np.argsort(similarities)[::-1][:candidates_count]
+
+        progress.update(
+            embed_task, description=f"Retrieved top {candidates_count} candidates"
+        )
+
+        # Stage 2: Reranking on candidates
+        rerank_task = progress.add_task(
+            f"Stage 2: Reranking top {candidates_count} candidates...", total=None
+        )
+
+        # Prepare candidates for reranking
+        candidate_documents = [documents[i] for i in top_indices]
+        candidate_papers = [papers[i] for i in top_indices]
+
+        # Use Cohere Rerank 3.5 on candidates only
+        rerank_response = client.rerank(
             query=query,
-            documents=documents,
+            documents=candidate_documents,
             model="rerank-v3.5",
-            top_n=min(top_k, len(documents)),
+            top_n=min(top_k, len(candidate_documents)),
         )
 
-        progress.update(task, description="Search completed")
+        progress.update(rerank_task, description="Search completed")
 
-    # Return papers with their relevance scores
+    # Return final ranked papers with relevance scores
     results = []
-    for result in response.results:
-        paper = papers[result.index]
+    for result in rerank_response.results:
+        paper = candidate_papers[result.index]
         results.append((paper, result.relevance_score))
 
     return results
@@ -317,6 +401,18 @@ def search(
     top_k: int = typer.Option(
         10, "--top-k", "-k", help="Number of top results to return"
     ),
+    retrieval_k: int = typer.Option(
+        100,
+        "--retrieval-k",
+        "-r",
+        help="Number of candidates to retrieve before reranking (default: 100)",
+    ),
+    strategy: str = typer.Option(
+        "embed-rerank",
+        "--strategy",
+        "-s",
+        help="Search strategy: 'embed-rerank' (faster, default) or 'rerank-only' (more accurate)",
+    ),
     set_spec: str = typer.Option(
         "cs", "--set", help="arXiv set (default: cs for Computer Science)"
     ),
@@ -326,6 +422,13 @@ def search(
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON"),
 ):
     """Search arXiv papers using natural language queries with semantic search."""
+
+    # Validate strategy
+    if strategy not in ["embed-rerank", "rerank-only"]:
+        console.print(
+            f"[red]Error: Invalid strategy '{strategy}'. Use 'embed-rerank' or 'rerank-only'.[/red]"
+        )
+        raise typer.Exit(1)
 
     # Determine date range
     if preset:
@@ -346,6 +449,7 @@ def search(
         f"[bold]Searching arXiv papers from {from_date_computed} to {until_date_computed}[/bold]"
     )
     console.print(f"[bold]Query:[/bold] {query}")
+    console.print(f"[bold]Strategy:[/bold] {strategy}")
     console.print()
 
     try:
@@ -358,10 +462,15 @@ def search(
             )
             return
 
-        console.print(f"Found {len(papers)} papers. Performing semantic search...")
+        strategy_desc = (
+            "two-stage semantic search (retrieve-then-rerank)"
+            if strategy == "embed-rerank"
+            else "single-stage reranking"
+        )
+        console.print(f"Found {len(papers)} papers. Performing {strategy_desc}...")
 
         # Perform semantic search
-        results = semantic_search(papers, query, top_k)
+        results = semantic_search(papers, query, top_k, retrieval_k, strategy)
 
         if json_output:
             # Output as JSON
