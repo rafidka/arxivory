@@ -37,7 +37,7 @@ venvPath = "."
 line-length = 88
 target-version = "py312"
 include = [
-    "src/git_digest/**/*.py",
+    "src/arxiv_search/**/*.py",
     "tests/**/*.py",
 ]
 
@@ -50,7 +50,7 @@ extend-select = [
     "I",
     "D",
 ]
-isort = { combine-as-imports = true, known-first-party = ["git_digest"] }
+isort = { combine-as-imports = true, known-first-party = ["arxiv_search"] }
 mccabe = { max-complexity = 15 }
 ignore = [
     "D100", # ignore missing docstring in module
