@@ -14,12 +14,18 @@ from arxivory.constants import (
     DEFAULT_SET_SPEC,
     DEFAULT_STRATEGY,
     DEFAULT_TOP_K,
+    PAPERLENS_BASE_URL,
     STRATEGY_EMBED_RERANK,
     VALID_PRESETS,
     VALID_STRATEGIES,
 )
 
 console = Console()
+
+
+def generate_paperlens_url(arxiv_id: str) -> str:
+    """Generate PaperLens URL for the given arXiv ID."""
+    return f"{PAPERLENS_BASE_URL}/?paper={arxiv_id}&source=arxivory"
 
 
 def format_results(
@@ -49,8 +55,15 @@ def format_results(
 
         title = paper.get("title", "N/A")
         arxiv_id = paper.get("arxiv_id", "N/A")
+        
+        # Add PaperLens URL under the title
+        if arxiv_id and arxiv_id != "N/A":
+            paperlens_url = generate_paperlens_url(arxiv_id)
+            title_with_link = f"{title}\n📱 [dim]{paperlens_url}[/dim]"
+        else:
+            title_with_link = title
 
-        row = [str(i), f"{score:.3f}", title, authors, arxiv_id]
+        row = [str(i), f"{score:.3f}", title_with_link, authors, arxiv_id]
 
         if show_abstract:
             abstract = paper.get("abstract", "N/A")
@@ -61,14 +74,6 @@ def format_results(
         table.add_row(*row)
 
     console.print(table)
-
-    # Show links for top result
-    if results:
-        top_paper = results[0][0]
-        if top_paper.get("links"):
-            console.print("\n[bold]Top result links:[/bold]")
-            console.print(f"Abstract: {top_paper['links'].get('abs', 'N/A')}")
-            console.print(f"PDF: {top_paper['links'].get('pdf', 'N/A')}")
 
 
 def search_command(

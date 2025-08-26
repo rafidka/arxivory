@@ -24,6 +24,9 @@ PRESET_YESTERDAY = "yesterday"
 PRESET_LAST_WEEK = "last-week"
 VALID_PRESETS = [PRESET_YESTERDAY, PRESET_LAST_WEEK]
 
+# PaperLens integration
+PAPERLENS_BASE_URL = "https://paperlens.rafid.ai"
+
 # OAI-PMH namespaces
 OAI_NAMESPACES = {
     "oai": "http://www.openarchives.org/OAI/2.0/",
