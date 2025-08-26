@@ -55,7 +55,7 @@ def format_results(
 
         title = paper.get("title", "N/A")
         arxiv_id = paper.get("arxiv_id", "N/A")
-        
+
         # Add PaperLens URL under the title
         if arxiv_id and arxiv_id != "N/A":
             paperlens_url = generate_paperlens_url(arxiv_id)
