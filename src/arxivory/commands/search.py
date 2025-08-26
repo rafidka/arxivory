@@ -7,9 +7,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from arxiv_search.arxiv import compute_window, harvest_papers
-from arxiv_search.cohere import semantic_search
-from arxiv_search.constants import (
+from arxivory.arxiv import compute_window, harvest_papers
+from arxivory.cohere import semantic_search
+from arxivory.constants import (
     DEFAULT_RETRIEVAL_K,
     DEFAULT_SET_SPEC,
     DEFAULT_STRATEGY,

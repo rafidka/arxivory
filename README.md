@@ -37,7 +37,7 @@ Choose between two search strategies:
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd arxiv-search
+cd arxivory
 
 # Install dependencies
 uv sync
@@ -54,22 +54,22 @@ Search for papers using natural language queries:
 
 ```bash
 # Search for recent papers about neural networks and information retrieval
-uv run arxiv-search search "papers about information retrieval and search engines that use neural networks" --preset yesterday
+uv run arxivory search "papers about information retrieval and search engines that use neural networks" --preset yesterday
 
 # Search with custom date range and show abstracts
-uv run arxiv-search search "transformer architectures for computer vision" --from-date 2024-01-01 --until-date 2024-01-07 --abstract
+uv run arxivory search "transformer architectures for computer vision" --from-date 2024-01-01 --until-date 2024-01-07 --abstract
 
 # Get top 5 results in JSON format
-uv run arxiv-search search "reinforcement learning for robotics" --preset last-week --top-k 5 --json
+uv run arxivory search "reinforcement learning for robotics" --preset last-week --top-k 5 --json
 
 # Configure retrieval stage for large document sets
-uv run arxiv-search search "deep learning optimization" --preset last-week --retrieval-k 200 --top-k 10
+uv run arxivory search "deep learning optimization" --preset last-week --retrieval-k 200 --top-k 10
 
 # Use rerank-only strategy for maximum accuracy
-uv run arxiv-search search "critical medical AI research" --preset yesterday --strategy rerank-only
+uv run arxivory search "critical medical AI research" --preset yesterday --strategy rerank-only
 
 # Search in other arXiv categories (e.g., Mathematics)
-uv run arxiv-search search "topology and algebraic geometry" --preset yesterday --set math
+uv run arxivory search "topology and algebraic geometry" --preset yesterday --set math
 ```
 
 ### Raw Metadata Harvest (Original functionality)
@@ -78,10 +78,10 @@ For raw JSON output without semantic search:
 
 ```bash
 # Harvest raw metadata for yesterday
-uv run arxiv-search harvest --preset yesterday
+uv run arxivory harvest --preset yesterday
 
 # Custom date range
-uv run arxiv-search harvest --from-date 2024-01-01 --until-date 2024-01-07
+uv run arxivory harvest --from-date 2024-01-01 --until-date 2024-01-07
 ```
 
 ## Examples
@@ -89,23 +89,23 @@ uv run arxiv-search harvest --from-date 2024-01-01 --until-date 2024-01-07
 ### Example 1: Information Retrieval Research
 
 ```bash
-uv run arxiv-search search "information retrieval using neural networks and transformers" --preset last-week --top-k 5 --abstract
+uv run arxivory search "information retrieval using neural networks and transformers" --preset last-week --top-k 5 --abstract
 ```
 
 ### Example 2: Computer Vision Papers
 
 ```bash
-uv run arxiv-search search "object detection and computer vision with deep learning" --from-date 2024-01-01 --until-date 2024-01-31
+uv run arxivory search "object detection and computer vision with deep learning" --from-date 2024-01-01 --until-date 2024-01-31
 ```
 
 ### Example 3: Strategy Comparison
 
 ```bash
 # Fast search with embed-rerank (default)
-uv run arxiv-search search "theoretical foundations of deep learning" --preset last-week --strategy embed-rerank --top-k 10
+uv run arxivory search "theoretical foundations of deep learning" --preset last-week --strategy embed-rerank --top-k 10
 
 # Maximum accuracy with rerank-only (slower, more expensive)
-uv run arxiv-search search "theoretical foundations of deep learning" --preset last-week --strategy rerank-only --top-k 10
+uv run arxivory search "theoretical foundations of deep learning" --preset last-week --strategy rerank-only --top-k 10
 ```
 
 ## Command Options

@@ -3,8 +3,8 @@
 
 import typer
 
-from arxiv_search.commands.harvest import harvest_command
-from arxiv_search.commands.search import search_command
+from arxivory.commands.harvest import harvest_command
+from arxivory.commands.search import search_command
 
 app = typer.Typer(
     help="ArXiv Semantic Search - Find papers using natural language queries"

@@ -1,6 +1,6 @@
 [project]
-name = "arxiv-search"
-version = "0.3.0"
+name = "arxivory"
+version = "0.4.0"
 description = "A command-line tool for searching arXiv papers using natural language queries with semantic search powered by Cohere embeddings and reranking"
 readme = "README.md"
 license = { text = "MIT" }
@@ -30,10 +30,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rafidka/arxiv-search"
-Repository = "https://github.com/rafidka/arxiv-search"
-Issues = "https://github.com/rafidka/arxiv-search/issues"
-Documentation = "https://github.com/rafidka/arxiv-search#readme"
+Homepage = "https://github.com/rafidka/arxivory"
+Repository = "https://github.com/rafidka/arxivory"
+Issues = "https://github.com/rafidka/arxivory/issues"
+Documentation = "https://github.com/rafidka/arxivory#readme"
 
 [project.optional-dependencies]
 dev = [
@@ -42,7 +42,7 @@ dev = [
 ]
 
 [project.scripts]
-arxiv-search = "arxiv_search:main.app"
+arxivory = "arxivory:main.app"
 
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]
@@ -59,7 +59,7 @@ venvPath = "."
 line-length = 88
 target-version = "py312"
 include = [
-    "src/arxiv_search/**/*.py",
+    "src/arxivory/**/*.py",
     "tests/**/*.py",
 ]
 
@@ -72,7 +72,7 @@ extend-select = [
     "I",
     "D",
 ]
-isort = { combine-as-imports = true, known-first-party = ["arxiv_search"] }
+isort = { combine-as-imports = true, known-first-party = ["arxivory"] }
 mccabe = { max-complexity = 15 }
 ignore = [
     "D100", # ignore missing docstring in module

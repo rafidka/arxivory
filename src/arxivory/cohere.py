@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from arxiv_search.constants import (
+from arxivory.constants import (
     DEFAULT_RETRIEVAL_K,
     DEFAULT_TOP_K,
     EMBED_MODEL,

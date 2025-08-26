@@ -5,8 +5,8 @@ import sys
 import typer
 from rich.console import Console
 
-from arxiv_search.arxiv import compute_window, harvest_raw_papers
-from arxiv_search.constants import (
+from arxivory.arxiv import compute_window, harvest_raw_papers
+from arxivory.constants import (
     DEFAULT_METADATA_PREFIX,
     DEFAULT_SET_SPEC,
     VALID_PRESETS,

@@ -12,7 +12,7 @@ from typing import Any
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from arxiv_search.constants import (
+from arxivory.constants import (
     BASE_URL,
     DEFAULT_METADATA_PREFIX,
     DEFAULT_SET_SPEC,
