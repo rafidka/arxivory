@@ -2,18 +2,19 @@
 import json
 import os
 import sys
-from datetime import date, datetime, timedelta, timezone
-from typing import Iterable, Dict, Any, Optional, List
-import xml.etree.ElementTree as ET
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-import typer
 import cohere
-from rich.console import Console
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
 import numpy as np
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 BASE_URL = "https://oaipmh.arxiv.org/oai"
 
@@ -23,18 +24,18 @@ app = typer.Typer(
 console = Console()
 
 
-def _build_url(params: Dict[str, str]) -> str:
+def _build_url(params: dict[str, str]) -> str:
     return f"{BASE_URL}?{urllib.parse.urlencode(params)}"
 
 
 def _list_records(
-    from_date: Optional[str],
-    until_date: Optional[str],
+    from_date: str | None,
+    until_date: str | None,
     set_spec: str,
     metadata_prefix: str,
 ) -> Iterable[ET.Element]:
-    """
-    Iterate OAI-PMH <record> elements for the given window.
+    """Iterate OAI-PMH <record> elements for the given window.
+
     Uses ListRecords with resumptionToken handling.
     """
     params = {"verb": "ListRecords", "metadataPrefix": metadata_prefix, "set": set_spec}
@@ -58,8 +59,7 @@ def _list_records(
         }
 
         # Yield records
-        for rec in root.findall(".//oai:record", ns):
-            yield rec
+        yield from root.findall(".//oai:record", ns)
 
         # Handle resumptionToken
         rt = root.find(".//oai:resumptionToken", ns)
@@ -70,7 +70,7 @@ def _list_records(
         url = _build_url({"verb": "ListRecords", "resumptionToken": token})
 
 
-def _extract_record(rec: ET.Element) -> Dict[str, Any]:
+def _extract_record(rec: ET.Element) -> dict[str, Any]:
     ns = {
         "oai": "http://www.openarchives.org/OAI/2.0/",
         "arxiv": "http://arxiv.org/OAI/arXiv/",
@@ -79,7 +79,7 @@ def _extract_record(rec: ET.Element) -> Dict[str, Any]:
     meta = rec.find("oai:metadata", ns)
     deleted = header.get("status") == "deleted" if header is not None else False
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "identifier": None,
         "datestamp": None,
         "deleted": deleted,
@@ -127,13 +127,14 @@ def _extract_record(rec: ET.Element) -> Dict[str, Any]:
             ).strip()
 
             # authors
-            out["authors"] = []
+            authors_list: list[dict[str, str]] = []
             for a in ar.findall("arxiv:authors/arxiv:author", ns):
                 name = (a.findtext("arxiv:keyname", namespaces=ns) or "").strip()
                 given = (a.findtext("arxiv:forenames", namespaces=ns) or "").strip()
                 suffix = (a.findtext("arxiv:suffix", namespaces=ns) or "").strip()
                 full = " ".join(x for x in [given, name, suffix] if x)
-                out["authors"].append({"name": full or name})
+                authors_list.append({"name": full or name})
+            out["authors"] = authors_list
 
             # categories
             primary = (
@@ -160,7 +161,7 @@ def _extract_record(rec: ET.Element) -> Dict[str, Any]:
 
 def compute_window(preset: str) -> tuple[str, str]:
     """Return (from, until) in UTC date format YYYY-MM-DD inclusive."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     if preset == "yesterday":
         d = today - timedelta(days=1)
         return d.isoformat(), d.isoformat()
@@ -186,9 +187,9 @@ def harvest_papers(
     until_date: str,
     set_spec: str = "cs",
     metadata_prefix: str = "arXiv",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Harvest papers from arXiv for the given date range."""
-    papers = []
+    papers: list[dict[str, Any]] = []
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -211,12 +212,12 @@ def harvest_papers(
 
 
 def semantic_search(
-    papers: List[Dict[str, Any]],
+    papers: list[dict[str, Any]],
     query: str,
     top_k: int = 10,
     retrieval_k: int = 100,
     strategy: str = "embed-rerank",
-) -> List[tuple[Dict[str, Any], float]]:
+) -> list[tuple[dict[str, Any], float]]:
     """
     Perform semantic search with configurable strategy.
 
@@ -233,7 +234,7 @@ def semantic_search(
     client = get_cohere_client()
 
     # Prepare documents for embedding (title + abstract)
-    documents = []
+    documents: list[str] = []
     for paper in papers:
         doc_text = f"{paper.get('title', '')} {paper.get('abstract', '')}"
         documents.append(doc_text)
@@ -264,7 +265,7 @@ def semantic_search(
             progress.update(task, description="Search completed")
 
         # Return papers with their relevance scores
-        results = []
+        results: list[tuple[dict[str, Any], float]] = []
         for result in response.results:
             paper = papers[result.index]
             results.append((paper, result.relevance_score))
@@ -284,15 +285,15 @@ def semantic_search(
 
         # Get embeddings for query and all documents
         query_embed_response = client.embed(
-            texts=[query], model="embed-v4", input_type="search_query"
+            texts=[query], model="embed-v4.0", input_type="search_query"
         )
 
         doc_embed_response = client.embed(
-            texts=documents, model="embed-v4", input_type="search_document"
+            texts=documents, model="embed-v4.0", input_type="search_document"
         )
 
-        query_embedding = np.array(query_embed_response.embeddings[0])
-        doc_embeddings = np.array(doc_embed_response.embeddings)
+        query_embedding = np.array(query_embed_response.embeddings[0])  # type: ignore
+        doc_embeddings = np.array(doc_embed_response.embeddings)  # type: ignore
 
         progress.update(embed_task, description="Computing cosine similarities...")
 
@@ -315,8 +316,8 @@ def semantic_search(
         )
 
         # Prepare candidates for reranking
-        candidate_documents = [documents[i] for i in top_indices]
-        candidate_papers = [papers[i] for i in top_indices]
+        candidate_documents: list[str] = [documents[i] for i in top_indices]
+        candidate_papers: list[dict[str, Any]] = [papers[i] for i in top_indices]
 
         # Use Cohere Rerank 3.5 on candidates only
         rerank_response = client.rerank(
@@ -329,7 +330,7 @@ def semantic_search(
         progress.update(rerank_task, description="Search completed")
 
     # Return final ranked papers with relevance scores
-    results = []
+    results: list[tuple[dict[str, Any], float]] = []
     for result in rerank_response.results:
         paper = candidate_papers[result.index]
         results.append((paper, result.relevance_score))
@@ -338,7 +339,7 @@ def semantic_search(
 
 
 def format_results(
-    results: List[tuple[Dict[str, Any], float]], show_abstract: bool = False
+    results: list[tuple[dict[str, Any], float]], show_abstract: bool = False
 ):
     """Format and display search results."""
     if not results:
@@ -381,7 +382,7 @@ def format_results(
     if results:
         top_paper = results[0][0]
         if top_paper.get("links"):
-            console.print(f"\n[bold]Top result links:[/bold]")
+            console.print("\n[bold]Top result links:[/bold]")
             console.print(f"Abstract: {top_paper['links'].get('abs', 'N/A')}")
             console.print(f"PDF: {top_paper['links'].get('pdf', 'N/A')}")
 
@@ -422,7 +423,6 @@ def search(
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON"),
 ):
     """Search arXiv papers using natural language queries with semantic search."""
-
     # Validate strategy
     if strategy not in ["embed-rerank", "rerank-only"]:
         console.print(
@@ -474,7 +474,7 @@ def search(
 
         if json_output:
             # Output as JSON
-            json_results = []
+            json_results: list[dict[str, Any]] = []
             for paper, score in results:
                 result_obj = paper.copy()
                 result_obj["relevance_score"] = score
@@ -506,20 +506,19 @@ def harvest(
     metadata_prefix: str = typer.Option("arXiv", "--prefix", help="Metadata format"),
 ):
     """Harvest arXiv metadata without semantic search (original functionality)."""
-
     # Determine date range
     if preset:
         if preset not in ["yesterday", "last-week"]:
-            console.print(
-                f"[red]Error: Invalid preset '{preset}'. Use 'yesterday' or 'last-week'.[/red]",
+            print(
+                f"Error: Invalid preset '{preset}'. Use 'yesterday' or 'last-week'.",
                 file=sys.stderr,
             )
             raise typer.Exit(1)
         from_date_computed, until_date_computed = compute_window(preset)
     else:
         if not from_date:
-            console.print(
-                "[red]Error: Provide either --preset or --from-date.[/red]",
+            print(
+                "Error: Provide either --preset or --from-date.",
                 file=sys.stderr,
             )
             raise typer.Exit(1)
@@ -535,6 +534,7 @@ def harvest(
 
 
 def main():
+    """Main entry point for the CLI application."""
     app()
 
 

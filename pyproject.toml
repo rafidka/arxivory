@@ -1,6 +1,6 @@
 [project]
 name = "arxiv-search"
-version = "0.2.0"
+version = "0.3.0"
 description = "Add your description here"
 # readme = "README.md"
 authors = [
@@ -20,3 +20,51 @@ arxiv-search = "arxiv_search:main.app"
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.404",
+    "ruff>=0.12.10",
+]
+
+[tool.pyright]
+reportMissingImports = false
+typeCheckingMode = "strict"
+venv = ".venv"
+venvPath = "."
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+include = [
+    "src/git_digest/**/*.py",
+    "tests/**/*.py",
+]
+
+[tool.ruff.lint]
+extend-select = [
+    "Q",
+    "RUF100",
+    "C90",
+    "UP",
+    "I",
+    "D",
+]
+isort = { combine-as-imports = true, known-first-party = ["git_digest"] }
+mccabe = { max-complexity = 15 }
+ignore = [
+    "D100", # ignore missing docstring in module
+    "D102", # ignore missing docstring in public method
+    "D104", # ignore missing docstring in public package
+    "D105", # ignore missing docstring in magic methods
+    "D107", # ignore missing docstring in __init__ methods
+    "D200", # ignore one-line docstring should not be in multi-line format
+    "D212", # ignore multi-line docstring summary should start at the second line
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D"]
+"docs/**/*.py" = ["D"]
