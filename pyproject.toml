@@ -1,10 +1,25 @@
 [project]
 name = "arxiv-search"
 version = "0.3.0"
-description = "Add your description here"
-# readme = "README.md"
+description = "A command-line tool for searching arXiv papers using natural language queries with semantic search powered by Cohere embeddings and reranking"
+readme = "README.md"
+license = { text = "MIT" }
 authors = [
     { name = "Rafid Al-Humaimidi", email = "rafidka@gmail.com" }
+]
+keywords = ["arxiv", "search", "semantic", "papers", "research", "ai", "nlp", "cohere"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Utilities",
 ]
 requires-python = ">=3.12"
 dependencies = [
@@ -14,6 +29,18 @@ dependencies = [
     "numpy>=1.24.0"
 ]
 
+[project.urls]
+Homepage = "https://github.com/rafidka/arxiv-search"
+Repository = "https://github.com/rafidka/arxiv-search"
+Issues = "https://github.com/rafidka/arxiv-search/issues"
+Documentation = "https://github.com/rafidka/arxiv-search#readme"
+
+[project.optional-dependencies]
+dev = [
+    "pyright>=1.1.404",
+    "ruff>=0.12.10",
+]
+
 [project.scripts]
 arxiv-search = "arxiv_search:main.app"
 
@@ -21,11 +48,6 @@ arxiv-search = "arxiv_search:main.app"
 requires = ["uv_build>=0.8.13,<0.9.0"]
 build-backend = "uv_build"
 
-[dependency-groups]
-dev = [
-    "pyright>=1.1.404",
-    "ruff>=0.12.10",
-]
 
 [tool.pyright]
 reportMissingImports = false
