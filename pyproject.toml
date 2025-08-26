@@ -35,12 +35,6 @@ Repository = "https://github.com/rafidka/arxivory"
 Issues = "https://github.com/rafidka/arxivory/issues"
 Documentation = "https://github.com/rafidka/arxivory#readme"
 
-[project.optional-dependencies]
-dev = [
-    "pyright>=1.1.404",
-    "ruff>=0.12.10",
-]
-
 [project.scripts]
 arxivory = "arxivory:main.app"
 
@@ -48,6 +42,11 @@ arxivory = "arxivory:main.app"
 requires = ["uv_build>=0.8.13,<0.9.0"]
 build-backend = "uv_build"
 
+[dependency-groups]
+dev = [
+    "pyright>=1.1.404",
+    "ruff>=0.12.10",
+]
 
 [tool.pyright]
 reportMissingImports = false
